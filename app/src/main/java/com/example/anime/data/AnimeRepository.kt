@@ -89,11 +89,8 @@ class AnimeRepositoryImpl(private val api: JikanApi, private val dao: AnimeDao):
     override fun getAllAnime(): Flow<List<AnimeEntity>> {
         return dao.getAllAnime()
             .catch { e ->
-                // Log the error for developers
                 Log.e("DatabaseError", "Error reading anime list from Room", e)
 
-                // Emit an empty list so the UI can still render
-                // (or show an empty state) instead of crashing
                 emit(emptyList())
             }
     }
