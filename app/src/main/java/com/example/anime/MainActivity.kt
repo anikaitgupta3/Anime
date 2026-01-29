@@ -49,14 +49,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        // Manual DI for simplicity
-        /*val db = Room.databaseBuilder(applicationContext, AnimeDatabase::class.java, "anime_db").build()
-        val api = Retrofit.Builder()
-            .baseUrl("https://api.jikan.moe/v4/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .build().create(JikanApi::class.java)
-        val repo = AnimeRepository(api, db.animeDao())*/
-        //val vm = AnimeViewModel()
+
 
 
         setContent {
