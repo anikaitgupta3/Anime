@@ -4,6 +4,8 @@ Upon clicking on a list item it navigates to detail screen which displays the de
 I fetched the data from api using retrofit and stored the data to room database during the screen opening.In case of any error the data from room database is shown.
 I show the data from room database into the composables.
 I implemented MVVM Architecture and stateflow for reactive data handling and coil library for image loading.
+I also applied a loading screen to show initially when the data is not there in both room database and not fetched from api
+In case the app is loaded first time and there is some network/api issue i showed a error screen with a button to retry after checking network
 
 Assumptions made/Limitations:
 
