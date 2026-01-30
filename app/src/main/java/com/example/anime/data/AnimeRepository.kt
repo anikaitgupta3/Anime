@@ -5,93 +5,115 @@ import androidx.sqlite.SQLiteException
 import com.example.anime.data.database.AnimeDao
 import com.example.anime.data.database.AnimeEntity
 import com.example.anime.data.network.JikanApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 import okio.IOException
 
-interface AnimeRepository{
-    fun getAllAnime(): Flow<List<AnimeEntity>>
-    suspend fun syncAnime()
-    suspend fun getAnime(id: Int): AnimeEntity?
+interface AnimeRepository {
+    suspend fun syncAndGetAnime(): Flow<Result>
+    fun getAnime(id: Int): Flow<AnimeEntity?>
     suspend fun fetchAndStoreCast(id: Int)
 
 }
-class AnimeRepositoryImpl(private val api: JikanApi, private val dao: AnimeDao): AnimeRepository {
-    //val allAnime = dao.getAllAnime()
-    /*override fun getAllAnime(): Flow<List<AnimeEntity>> {
-        return dao.getAllAnime()
-    }*/
-    override suspend fun getAnime(id: Int): AnimeEntity? {
-        return try {
-            dao.getAnimeById(id)
-        } catch (e: Exception) {
-            // Log the error for debugging
-            Log.e("DatabaseError", "Failed to fetch anime $id: ${e.message}")
-            // Return null or handle based on your UI needs
-            null
-        }
+
+sealed class Result {
+    data class Success(val listOfAllAnime: List<AnimeEntity>) : Result()
+    object Loading : Result()
+    object Error : Result()
+}
+
+class AnimeRepositoryImpl(private val api: JikanApi, private val dao: AnimeDao) : AnimeRepository {
+    //This will emit the anime for the detail screen
+    override fun getAnime(id: Int): Flow<AnimeEntity?> {
+        return dao.getAnimeById(id)
+            .catch { e ->
+                Log.e("DatabaseError", "Error observing anime $id", e)
+                emit(null)
+            }
     }
+    //This will be emitting the list of anime for the initial screen and error/loading states to show
 
-
-    override suspend fun syncAnime() {
+    override suspend fun syncAndGetAnime(): Flow<Result> = flow {
+        val listFromDao = dao.getAllAnime().first()
+        if (!listFromDao.isEmpty()) {
+            emit(Result.Success(listFromDao))
+        } else {
+            emit(Result.Loading)
+        }
         try {
             val response = api.getTopAnime()
-            val entities = response.data.map { dto ->
-                AnimeEntity(
-                    mal_id = dto.mal_id,
-                    title = dto.title,
-                    episodes = dto.episodes,
-                    score = dto.score,
-                    synopsis = dto.synopsis,
-                    imageUrl = dto.images.jpg.image_url,
-                    trailerUrl = dto.trailer.embed_url,
-                    genres = dto.genres.joinToString { it.name ?:" " }
-                )
+            if (response.isSuccessful && response.body() != null) {
+                val entities = response.body()!!.data.map { dto ->
+                    AnimeEntity(
+                        mal_id = dto.mal_id,
+                        title = dto.title,
+                        episodes = dto.episodes,
+                        score = dto.score,
+                        synopsis = dto.synopsis,
+                        imageUrl = dto.images?.jpg?.image_url,
+                        trailerUrl = dto.trailer?.embed_url,
+                        genres = dto.genres?.joinToString { it.name ?: " " }
+                    )
+                }
+                dao.insertAll(entities)
+            } else if (listFromDao.isEmpty()) {
+                emit(Result.Error)
             }
-            dao.insertAll(entities)
+            val newListFromDao = dao.getAllAnime().first()
+            if (!newListFromDao.isEmpty()) {
+                emit(Result.Success(newListFromDao))
+            } else {
+                emit(Result.Error)
+            }
         } catch (e: Exception) {
-            e.printStackTrace() // Handle network error (Offline First: user sees cached data)
+            val newListFromDao = dao.getAllAnime().first()
+            if (!newListFromDao.isEmpty()) {
+                emit(Result.Success(newListFromDao))
+            } else {
+                emit(Result.Error)
+            }
         }
     }
-    // Fetch cast only when needed and save to Room
+    //This will fetch the cast values and store them in room database when user navigates to detail screen
     override suspend fun fetchAndStoreCast(id: Int) {
         try {
-            val characterResponse = api.getAnimeCharacters(id)
-            // Take top 5 actors/characters
-            val castString = characterResponse.data.take(5).joinToString { it.character.name }
+            if (dao.getAnimeById(id).first()?.cast.isNullOrEmpty()) {
+                val characterResponse = api.getAnimeCharacters(id)
+                if (characterResponse.isSuccessful && characterResponse.body() != null) {
+                    // Take top 5 actors/characters
+                    val castString =
+                        characterResponse.body()!!.data.take(5)
+                            .joinToString { (it.character?.name ?: "Loading cast...") }
 
-            // Update specific record in Room
-            val currentAnime = dao.getAnimeById(id)
-            currentAnime?.let {
-                dao.insertAll(listOf(it.copy(cast = castString)))
+                    val currentAnime = dao.getAnimeById(id).first()
+                    currentAnime?.let {
+                        dao.insertAll(listOf(it.copy(cast = castString)))
+                    }
+                }
             }
         } catch (e: Exception) {
-            handleDatabaseError(e)
+            handleError(e)
         }
     }
-    private fun handleDatabaseError(e: Exception) {
+
+    private fun handleError(e: Exception) {
         when (e) {
             is IOException -> {
-                // Network failure: No action needed for offline-first
-                // as Room still has the data.
+
             }
+
             is SQLiteException -> {
-                // Disk full or database corruption
                 Log.e("DB_ERROR", "Database access failed: ${e.message}")
             }
+
             else -> {
                 Log.e("GENERAL_ERROR", "An unknown error occurred: ${e.message}")
             }
         }
-    }
-
-    /*override suspend fun getAnime(id: Int) = dao.getAnimeById(id)*/
-    override fun getAllAnime(): Flow<List<AnimeEntity>> {
-        return dao.getAllAnime()
-            .catch { e ->
-                Log.e("DatabaseError", "Error reading anime list from Room", e)
-
-                emit(emptyList())
-            }
     }
 }

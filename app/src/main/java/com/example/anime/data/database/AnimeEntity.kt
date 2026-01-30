@@ -10,8 +10,8 @@ data class AnimeEntity(
     val episodes: Int?,
     val score: Double?,
     val synopsis: String?,
-    val imageUrl: String,
+    val imageUrl: String?,
     val trailerUrl: String?,
     val genres: String?,
-    val cast: String? = null // New Field
+    val cast: String? = null
 )

@@ -12,6 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -23,6 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
@@ -31,12 +33,12 @@ import com.example.anime.data.database.AnimeEntity
 
 @Composable
 fun DetailScreen(animeId: Int, viewModel: AnimeViewModel) {
-    var anime by remember { mutableStateOf<AnimeEntity?>(null) }
     LaunchedEffect(animeId) {
-        anime = viewModel.getAnimeById(animeId)
         viewModel.syncCast(animeId)
+        viewModel.loadAnimeDetails(animeId)
     }
 
+    val anime by viewModel.detailState.collectAsStateWithLifecycle()
     anime?.let { item ->
         Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
             if (!item.trailerUrl.isNullOrEmpty()) {
@@ -46,7 +48,6 @@ fun DetailScreen(animeId: Int, viewModel: AnimeViewModel) {
             }
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(item.title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                // Display Main Cast
                 Text("Main Cast", style = MaterialTheme.typography.titleLarge)
                 Text(
                     text = item.cast ?: "Loading cast...",

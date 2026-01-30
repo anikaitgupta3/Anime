@@ -6,7 +6,7 @@ data class AnimeDto(
     val episodes: Int?,
     val score: Double?,
     val synopsis: String?,
-    val images: ImagesDto,
-    val trailer: TrailerDto,
-    val genres: List<GenreDto>
+    val images: ImagesDto?,
+    val trailer: TrailerDto?,
+    val genres: List<GenreDto>?
 )

@@ -25,48 +25,28 @@ import com.example.anime.data.network.JikanApi
 import com.example.anime.ui.screens.AnimeListScreen
 import com.example.anime.ui.screens.AnimeViewModel
 import com.example.anime.ui.screens.DetailScreen
+import com.example.anime.ui.screens.MainScreen
 import com.example.anime.ui.theme.AnimeTheme
 import retrofit2.Retrofit
-
-/*class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            AnimeTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
-            }
-        }
-    }
-}*/
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-
-
-
-
         setContent {
             AnimeTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    MainScreen()
+                    MainScreen1()
                 }
             }
         }
     }
 }
 @Composable
-fun MainScreen(){
+fun MainScreen1(){
     val vm: AnimeViewModel = viewModel(factory = AnimeViewModel.Factory)
     val navController = rememberNavController()
     NavHost(navController, startDestination = "list") {
-        composable("list") { AnimeListScreen(vm) { id -> navController.navigate("detail/$id") } }
+        composable("list") { MainScreen(vm) { id -> navController.navigate("detail/$id") } }
         composable("detail/{id}", arguments = listOf(navArgument("id") { type = NavType.IntType })) {
             DetailScreen(it.arguments?.getInt("id") ?: 0, vm)
         }

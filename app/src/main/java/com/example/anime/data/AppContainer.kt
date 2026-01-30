@@ -8,7 +8,7 @@ import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-
+//Interface for dependency injection
 interface AppContainer {
     val animeRepository: AnimeRepository
 }
@@ -17,10 +17,6 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     private val baseUrl =
         "https://api.jikan.moe/v4/"
 
-    /**
-     * Use the Retrofit builder to build a retrofit object using a kotlinx.serialization converter
-     */
-    //private val retroJson = Json { ignoreUnknownKeys = true }
     private val retrofit = Retrofit.Builder()
         //.addConverterFactory(retroJson.asConverterFactory("application/json".toMediaType()))
         .addConverterFactory(GsonConverterFactory.create())

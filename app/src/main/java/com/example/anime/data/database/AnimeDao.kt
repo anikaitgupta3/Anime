@@ -5,7 +5,6 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
-
 @Dao
 interface AnimeDao {
     @Query("SELECT * FROM anime_table")
@@ -15,5 +14,5 @@ interface AnimeDao {
     suspend fun insertAll(anime: List<AnimeEntity>)
 
     @Query("SELECT * FROM anime_table WHERE mal_id = :id")
-    suspend fun getAnimeById(id: Int): AnimeEntity?
+    fun getAnimeById(id: Int): Flow<AnimeEntity?>
 }
